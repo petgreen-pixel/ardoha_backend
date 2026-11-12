@@ -1,0 +1,17 @@
+{
+  "name": "ardoha-backend",
+  "version": "2.0.0",
+  "description": "Ardoha backend: Google sign-in, accounts, client dashboards, admin panel, bookings and Paystack payments (PostgreSQL / Supabase)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --no-warnings test/run.js",
+    "schema": "node -e \"process.stdout.write(require('fs').readFileSync('schema.sql','utf8'))\""
+  },
+  "dependencies": {
+    "pg": "^8.11.0"
+  },
+  "engines": { "node": ">=18" },
+  "license": "UNLICENSED",
+  "private": true
+}

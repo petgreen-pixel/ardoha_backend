@@ -1,0 +1,173 @@
+{
+ "goodreads": {
+  "name": "Goodreads optimisation",
+  "cat": "reach",
+  "prices": [
+   200,
+   450,
+   900
+  ]
+ },
+ "listopia": {
+  "name": "Listopia placement",
+  "cat": "reach",
+  "prices": [
+   200,
+   400,
+   750
+  ]
+ },
+ "book-clubs": {
+  "name": "Book clubs",
+  "cat": "reach",
+  "prices": [
+   250,
+   550,
+   1100
+  ]
+ },
+ "social-media": {
+  "name": "Social media book marketing",
+  "cat": "reach",
+  "prices": [
+   250,
+   600,
+   1200
+  ]
+ },
+ "book-trailers": {
+  "name": "Book trailer videos",
+  "cat": "reach",
+  "prices": [
+   350,
+   800,
+   1500
+  ]
+ },
+ "geo": {
+  "name": "GEO: AI search visibility",
+  "cat": "reach",
+  "prices": [
+   300,
+   700,
+   1400
+  ]
+ },
+ "author-profiling": {
+  "name": "Author profiling",
+  "cat": "reach",
+  "prices": [
+   200,
+   450,
+   900
+  ]
+ },
+ "newsletters": {
+  "name": "Newsletter features",
+  "cat": "reach",
+  "prices": [
+   250,
+   600,
+   1200
+  ]
+ },
+ "amazon": {
+  "name": "Amazon optimisation",
+  "cat": "sales",
+  "prices": [
+   250,
+   600,
+   1200
+  ]
+ },
+ "youtube-ads": {
+  "name": "YouTube video ads",
+  "cat": "sales",
+  "prices": [
+   400,
+   850,
+   1500
+  ]
+ },
+ "reader-psychology": {
+  "name": "Reader psychology audit",
+  "cat": "sales",
+  "prices": [
+   200,
+   450,
+   900
+  ]
+ },
+ "cover-design": {
+  "name": "Book cover design",
+  "cat": "sales",
+  "prices": [
+   300,
+   700,
+   1400
+  ]
+ },
+ "author-website": {
+  "name": "Author website optimisation",
+  "cat": "sales",
+  "prices": [
+   400,
+   900,
+   1500
+  ]
+ },
+ "email-campaigns": {
+  "name": "Conversion email campaigns",
+  "cat": "sales",
+  "prices": [
+   250,
+   600,
+   1200
+  ]
+ },
+ "platform-publishing": {
+  "name": "Platform publishing",
+  "cat": "sales",
+  "prices": [
+   200,
+   450,
+   900
+  ]
+ },
+ "brand-deals": {
+  "name": "Brand deal matching",
+  "cat": "endorse",
+  "prices": [
+   400,
+   900,
+   1500
+  ]
+ },
+ "ambassador": {
+  "name": "Ambassador programmes",
+  "cat": "endorse",
+  "prices": [
+   400,
+   900,
+   1500
+  ]
+ },
+ "screen": {
+  "name": "Film and screen endorsements",
+  "cat": "endorse",
+  "prices": [
+   400,
+   900,
+   1500
+  ]
+ },
+ "press": {
+  "name": "Press and partnership outreach",
+  "cat": "endorse",
+  "prices": [
+   300,
+   700,
+   1300
+  ]
+ }
+}
