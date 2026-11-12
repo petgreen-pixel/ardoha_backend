@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ardoha Admin</title>
+<style>
+:root{--black:#0B0B0B;--char:#171717;--gold:#D6B77A;--champ:#E8D5AE;--ivory:#F5F0E7;--grey:#8C877F;--line:#2b261d;--metal:linear-gradient(110deg,#A77A3E,#E8D5AE,#C49A58,#F0DDB5);color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--black);color:var(--ivory);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);background:#0f0d09;position:sticky;top:0;z-index:5}
+header b{font:600 1.3rem Georgia,serif;letter-spacing:.08em;color:var(--gold)}header span{color:var(--grey);font-size:.85rem}
+main{max-width:1240px;margin:0 auto;padding:24px}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{padding:9px 18px;background:var(--metal);color:#111;border:0;font-weight:700;cursor:pointer;border-radius:2px}.btn.o{background:transparent;color:var(--gold);border:1px solid var(--gold)}.btn.s{padding:5px 12px;font-size:.82rem}.btn.d{background:transparent;color:#e27d6b;border:1px solid #6b3a33}
+input,select,textarea{background:var(--black);border:1px solid #3a3224;padding:9px 11px;border-radius:2px;width:100%}input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.card{background:var(--char);border:1px solid var(--line);padding:20px;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}.stat b{display:block;font:600 1.8rem Georgia,serif;color:var(--gold)}.stat span{font-size:.8rem;color:var(--grey)}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.u{display:block;width:100%;text-align:left;padding:12px;background:transparent;border:0;border-bottom:1px solid var(--line);cursor:pointer}.u:hover,.u.on{background:#1f1b14}.u small{color:var(--grey);display:block}
+.pill{font-size:.72rem;padding:1px 9px;border:1px solid #5a4a2e;border-radius:20px;color:var(--champ);margin-left:6px}.pill.w{border-color:#E0A84A;color:#E0A84A}
+h2{font:600 1.5rem Georgia,serif;margin:0 0 4px}h3{font:600 1.1rem Georgia,serif;margin:18px 0 10px;color:var(--champ)}
+.svc{border:1px solid var(--line);padding:14px;margin-bottom:12px;background:#12100b}.svc h4{margin:0 0 10px;font-size:1rem}
+.row{display:grid;grid-template-columns:140px 1fr 100px;gap:12px;align-items:end}@media(max-width:700px){.row{grid-template-columns:1fr}}
+label{display:grid;gap:4px;font-size:.78rem;color:var(--grey)}input[type=range]{padding:0;border:0;accent-color:#D6B77A}
+.up{padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}.up small{color:var(--grey)}
+.msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--metal);color:#111;padding:10px 20px;font-weight:700;border-radius:2px;opacity:0;pointer-events:none;transition:opacity .3s}.msg.on{opacity:1}.msg.err{background:#e27d6b}
+.login{max-width:420px;margin:12vh auto;text-align:center}.hint{color:var(--grey);font-size:.85rem}
+table{width:100%;border-collapse:collapse}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}th{color:var(--grey);font-weight:600}
+</style>
+</head>
+<body>
+<header><b>ARDOHA ADMIN</b><div><span id="who"></span> <button class="btn o s" id="out" hidden>Log out</button></div></header>
+<main id="app"></main>
+<div class="msg" id="msg" role="status"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+var $=function(s){return document.querySelector(s)},app=$('#app'),CAT={},CUR=null,SEL=null;
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function say(t,err){var m=$('#msg');m.textContent=t;m.className='msg on'+(err?' err':'');clearTimeout(say.h);say.h=setTimeout(function(){m.className='msg'},3200)}
+function api(method,url,body){return fetch(url,{method:method,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok){var e=new Error(j.error||'Request failed');e.status=r.status;throw e}return j})})}
+function fmt(d){try{return new Date(d).toLocaleString()}catch(e){return d}}
+function login(msg){
+ app.innerHTML='<div class="card login"><h2>Admin sign in</h2><p class="hint">Sign in with the Google account your team uses. Only approved admin emails can enter.</p><div id="gb" style="display:flex;justify-content:center;margin:18px 0"></div><p class="hint" id="le">'+esc(msg||'')+'</p></div>';
+ $('#out').hidden=true;$('#who').textContent='';
+ api('GET','/api/config').then(function(c){
+  if(!c.googleClientId){$('#le').textContent='Google sign-in is not configured on the server (GOOGLE_CLIENT_ID).';return}
+  var t=setInterval(function(){if(window.google&&google.accounts){clearInterval(t);
+   google.accounts.id.initialize({client_id:c.googleClientId,callback:function(r){api('POST','/api/auth/google',{credential:r.credential}).then(function(j){if(j.user.role!=='admin'){api('POST','/api/auth/logout');login('This Google account is not an admin.');return}start(j.user)}).catch(function(e){login(e.message)})}});
+   google.accounts.id.renderButton($('#gb'),{theme:'filled_black',size:'large',text:'signin_with',shape:'rectangular'})}},200)})}
+function start(u){$('#who').textContent=u.name+' · '+u.email;$('#out').hidden=false;
+ api('GET','/api/catalog').then(function(c){CAT=c;home()})}
+function home(){
+ app.innerHTML='<div class="stats" id="st"></div><div class="grid"><div class="card" style="padding:0"><div style="padding:14px"><input id="q" placeholder="Search clients by name or email"></div><div id="ul"></div></div><div id="dt"><div class="card"><p class="hint">Select a client on the left to update their dashboard.</p></div></div></div>';
+ api('GET','/api/admin/stats').then(function(s){$('#st').innerHTML=[['Clients',s.users],['Pending services',s.pending],['Active services',s.active],['Completed',s.completed],['Paid orders',s.paidOrders],['Revenue (USD)','$'+Number(s.revenueUsd).toLocaleString()],['Bookings',s.bookings]].map(function(x){return'<div class="card stat"><b>'+esc(x[1])+'</b><span>'+esc(x[0])+'</span></div>'}).join('')});
+ $('#q').oninput=function(){clearTimeout(home.t);home.t=setTimeout(list,250)};list();
+ if(SEL)open(SEL)}
+function list(){api('GET','/api/admin/users?q='+encodeURIComponent($('#q').value)).then(function(r){
+ $('#ul').innerHTML=r.length?r.map(function(u){return'<button class="u'+(u.id===SEL?' on':'')+'" data-id="'+u.id+'"><b>'+esc(u.name)+'</b>'+(u.role==='admin'?'<span class="pill">admin</span>':'')+'<small>'+esc(u.email)+'</small><small>'+u.active+' active'+(u.pending?' · <span style="color:#E0A84A">'+u.pending+' pending</span>':'')+'</small></button>'}).join(''):'<p class="hint" style="padding:14px">No clients found.</p>';
+ document.querySelectorAll('.u').forEach(function(b){b.onclick=function(){SEL=+b.dataset.id;list();open(SEL)}})}).catch(function(e){say(e.message,1)})}
+function open(id){api('GET','/api/admin/users/'+id).then(show).catch(function(e){say(e.message,1)})}
+function show(d){CUR=d;var u=d.user,opts=Object.keys(CAT).map(function(k){return'<option value="'+esc(k)+'">'+esc(CAT[k].name)+'</option>'}).join('');
+ $('#dt').innerHTML='<div class="card"><h2>'+esc(u.name)+'</h2><div class="hint">'+esc(u.email)+' · Book: '+esc(u.title||'not added')+' · Goal: '+esc(u.goal)+' · Joined '+esc(fmt(u.joined))+' · Signed up with '+esc(u.provider)+'</div>'+
+ '<h3>Services</h3>'+(d.services.length?d.services.map(function(s){return'<div class="svc" data-id="'+s.id+'"><h4>'+esc(s.name)+' <span class="pill'+(s.status==='pending'?' w':'')+'">'+esc(s.tier==='starter'?'Basic':s.tier==='growth'?'Standard':'Advanced')+' · $'+s.price+'</span></h4>'+
+ '<div class="row"><label>Status<select class="f-status">'+['pending','active','paused','completed'].map(function(x){return'<option'+(x===s.status?' selected':'')+'>'+x+'</option>'}).join('')+'</select></label><label>Progress: <b class="pv">'+s.progress+'</b>%<input type="range" class="f-prog" min="0" max="100" step="5" value="'+s.progress+'"></label><button class="btn s save">Save</button></div>'+
+ '<label style="margin-top:10px">Internal note (shown to the client under the service)<input class="f-note" maxlength="400" value="'+esc(s.note)+'"></label><label style="margin-top:10px">Optional update to post to the client\'s feed<input class="f-upd" maxlength="600" placeholder="e.g. Your trailer script is ready for approval"></label></div>'}).join(''):'<p class="hint">No services yet.</p>')+
+ '<h3>Add a service for this client</h3><div class="row" style="grid-template-columns:1fr 140px 120px 100px"><label>Service<select id="ns">'+opts+'</select></label><label>Package<select id="nt"><option value="starter">Basic</option><option value="growth">Standard</option><option value="premium">Advanced</option></select></label><label>Status<select id="nst"><option>active</option><option>pending</option></select></label><button class="btn s" id="na">Add</button></div></div>'+
+ '<div class="card"><h3 style="margin-top:0">Send an update to '+esc(u.name.split(' ')[0])+'</h3><label>Message<textarea id="ut" rows="3" maxlength="600" placeholder="Write what has happened, in plain words"></textarea></label><div class="row" style="grid-template-columns:1fr 100px;margin-top:10px"><label>About service (optional)<select id="us"><option value="">General</option>'+opts+'</select></label><button class="btn s" id="ub">Send</button></div>'+
+ '<h3>Recent updates</h3>'+(d.updates.length?d.updates.map(function(x){return'<div class="up"><div>'+esc(x.text)+'<br><small>'+esc(fmt(x.created_at))+'</small></div><button class="btn d s" data-del="'+x.id+'">Delete</button></div>'}).join(''):'<p class="hint">None yet.</p>')+'</div>'+
+ '<div class="card"><h3 style="margin-top:0">Orders</h3>'+(d.orders.length?'<table><tr><th>Reference</th><th>Total</th><th>Status</th><th>Date</th></tr>'+d.orders.map(function(o){return'<tr><td>'+esc(o.reference)+'</td><td>$'+o.total_usd+'</td><td>'+esc(o.status)+'</td><td>'+esc(fmt(o.paid_at||o.created_at))+'</td></tr>'}).join('')+'</table>':'<p class="hint">No orders.</p>')+'</div>';
+ document.querySelectorAll('.svc').forEach(function(el){var id=el.dataset.id;el.querySelector('.f-prog').oninput=function(e){el.querySelector('.pv').textContent=e.target.value};
+  el.querySelector('.save').onclick=function(){api('PATCH','/api/admin/services/'+id,{status:el.querySelector('.f-status').value,progress:+el.querySelector('.f-prog').value,note:el.querySelector('.f-note').value,update:el.querySelector('.f-upd').value}).then(function(j){say('Saved. The client sees this on their dashboard.');show(j);list()}).catch(function(e){say(e.message,1)})}});
+ $('#na').onclick=function(){api('POST','/api/admin/users/'+u.id+'/services',{slug:$('#ns').value,tier:$('#nt').value,status:$('#nst').value}).then(function(j){say('Service added.');show(j);list()}).catch(function(e){say(e.message,1)})};
+ $('#ub').onclick=function(){api('POST','/api/admin/users/'+u.id+'/updates',{text:$('#ut').value,service_slug:$('#us').value}).then(function(j){say('Update sent.');show(j)}).catch(function(e){say(e.message,1)})};
+ document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){if(confirm('Delete this update from the client\'s feed?'))api('DELETE','/api/admin/updates/'+b.dataset.del).then(function(j){say('Deleted.');show(j)}).catch(function(e){say(e.message,1)})}})}
+$('#out').onclick=function(){api('POST','/api/auth/logout').then(function(){SEL=null;login('You have signed out.')})};
+api('GET','/api/me').then(function(j){if(j.user.role==='admin')start(j.user);else login('This Google account is not an admin.')}).catch(function(){login()});
+</script>
+</body>
+</html>
