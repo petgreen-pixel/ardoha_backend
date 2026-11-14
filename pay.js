@@ -70,8 +70,46 @@ async function fulfil(reference) {
   }
   return db.one('SELECT * FROM orders WHERE reference = $1', [reference]);
 }
-function signatureOk(raw, sig) {
-  const h = crypto.createHmac('sha512', KEY() || '').update(raw).digest('hex');
-  return typeof sig === 'string' && sig.length === h.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(h));
+
+function signatureOk(raw, header) {
+  const secret = process.env.PAYSTACK_WEBHOOK_SECRET;
+
+  if (!secret || !Buffer.isBuffer(raw) || typeof header !== 'string') {
+    return false;
+  }
+
+  let timestamp = null;
+  const signatures = [];
+
+  for (const part of header.split(',')) {
+    const [key, ...values] = part.trim().split('=');
+    const value = values.join('=');
+
+    if (key === 't') {
+      timestamp = value;
+    } else if (key === 'v1') {
+      const colon = value.indexOf(':');
+      if (colon !== -1) {
+        signatures.push(value.slice(colon + 1));
+      }
+    }
+  }
+
+  const time = Number(timestamp);
+
+  if (!Number.isInteger(time) ||
+      Math.abs(Math.floor(Date.now() / 1000) - time) > 300) {
+    return false;
+  }
+
+  const expected = crypto.createHmac('sha512', secret)
+    .update(String(time) + '.')
+    .update(raw)
+    .digest();
+
+  return signatures.some(sig =>
+    /^[0-9a-f]{128}$/.test(sig) &&
+    crypto.timingSafeEqual(expected, Buffer.from(sig, 'hex'))
+  );
 }
 module.exports = { quote, initialize, fulfil, signatureOk, price, TIERS, PRICES };
