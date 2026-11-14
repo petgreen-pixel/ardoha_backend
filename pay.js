@@ -62,8 +62,7 @@ async function fulfil(reference) {
   currency: d && d.currency,
   reference: d && d.reference
 }));
-  if (d && d.status === 'success' && d.amount === o.amount_minor && d.currency === o.currency) {
-    await db.tx(async (q) => {
+if (d && d.status === 'success' && (d.requested_amount ?? d.amount) === o.amount_minor && d.currency === o.currency) {    await db.tx(async (q) => {
       // The "status <> 'paid'" condition makes this safe if the webhook and the customer's return arrive together:
       // PostgreSQL lets only one of them change the row, so services are activated once.
       const upd = await q("UPDATE orders SET status = 'paid', paid_at = $1 WHERE reference = $2 AND status <> 'paid'", [now(), reference]);
