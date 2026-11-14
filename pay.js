@@ -57,6 +57,8 @@ async function fulfil(reference) {
   const d = v && v.data; console.log('PAYMENT VERIFICATION:', JSON.stringify({
   status: d && d.status,
   amount: d && d.amount,
+  requested_amount: d && d.requested_amount,
+  expected_amount: o.amount_minor,
   currency: d && d.currency,
   reference: d && d.reference
 }));
