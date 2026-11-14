@@ -172,8 +172,7 @@ route('GET', '/api/checkout/verify/:reference', { auth: true, limit: 60 }, async
   return { status: r.status, reference: r.reference, total: r.total_usd };
 });
 route('POST', '/api/paystack/webhook', { raw: true }, ({ res, raw, req }) => {
-  if (!pay.signatureOk(raw, req.headers['x-paystack-signature'])) throw new HttpError(401, 'Bad signature');
-  res.writeHead(200); res.end();
+if (!pay.signatureOk(raw, req.headers['paystack-signature'])) throw new HttpError(401, 'Bad signature');  res.writeHead(200); res.end();
   try { const ev = JSON.parse(raw.toString()); if (ev.event === 'charge.success') pay.fulfil(ev.data.reference).catch((e) => console.error('fulfil', e.message)); } catch (e) { /* ignore */ }
   return undefined;
 });
