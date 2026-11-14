@@ -54,7 +54,12 @@ async function fulfil(reference) {
   if (!o) return null;
   if (o.status === 'paid') return o;
   const v = await ps('GET', '/transaction/verify/' + encodeURIComponent(reference));
-  const d = v && v.data;
+  const d = v && v.data; console.log('PAYMENT VERIFICATION:', JSON.stringify({
+  status: d && d.status,
+  amount: d && d.amount,
+  currency: d && d.currency,
+  reference: d && d.reference
+}));
   if (d && d.status === 'success' && d.amount === o.amount_minor && d.currency === o.currency) {
     await db.tx(async (q) => {
       // The "status <> 'paid'" condition makes this safe if the webhook and the customer's return arrive together:
