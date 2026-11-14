@@ -164,8 +164,7 @@ route('DELETE', '/api/me/plan/:slug', { auth: true }, async ({ user, params }) =
 });
 
 // ---------- payments ----------
-route('POST', '/api/checkout/initialize', { auth: true, limit: 20 }, ({ user, body }) => pay.initialize(user, body.promo));
-route('GET', '/api/checkout/verify/:reference', { auth: true, limit: 60 }, async ({ user, params }) => {
+route('POST', '/api/checkout/initialize', { auth: true, limit: 20 }, ({ user, body }) => pay.initialize(user, body.promo));route('GET', '/api/checkout/verify/:reference', { auth: true, limit: 60 }, async ({ user, params }) => {
   const o = await db.one('SELECT * FROM orders WHERE reference = $1 AND user_id = $2', [clean(params.reference, 40), user.id]);
   if (!o) throw new HttpError(404, 'Order not found');
   const r = await pay.fulfil(o.reference);
