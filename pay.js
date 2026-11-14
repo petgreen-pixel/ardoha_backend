@@ -38,7 +38,10 @@ async function initialize(user, promo) {
     callback_url: (process.env.SITE_URL || '').split(',')[0].trim() + '/',
     metadata: { order: reference },
   });
-  if (!r.status) throw new HttpError(502, 'Payment provider error');
+ if (!r.status) {
+  console.error('Paystack rejected payment:', r.message);
+  throw new HttpError(502, 'Paystack error: ' + (r.message || 'Unknown error'));
+}
   const items = pending.map((s) => ({ slug: s.slug, tier: s.tier, usd: price(s.slug, s.tier) }));
   await db.query('INSERT INTO orders(reference, user_id, items_json, total_usd, amount_minor, currency, promo, created_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8)',
     [reference, user.id, JSON.stringify(items), q.total, q.minor, CUR(), q.promo, now()]);
