@@ -264,6 +264,67 @@ route('PATCH', '/api/admin/services/:id', admin, async ({ params, body, user }) 
   });
   return dashboard(await auth.getUserById(s.user_id));
 });
+
+route('POST', '/api/contact', { limit: 5 }, async ({ body }) => {
+  const name = clean(body.name, 100);
+  const email = clean(body.email, 254);
+  const title = clean(body.title, 200);
+  const genre = clean(body.genre, 100);
+  const goal = clean(body.goal, 40);
+  const budget = clean(body.budget, 40);
+
+  if (!name || !EMAIL.test(email)) {
+    throw bad('Please provide your name and a valid email address');
+  }
+
+  // Save the enquiry before attempting email delivery.
+  await db.query(
+    `INSERT INTO contact_enquiries
+    (name, email, book_title, genre, goal, budget)
+    VALUES ($1, $2, $3, $4, $5, $6)`,
+    [name, email, title, genre, goal, budget]
+  );
+
+  let emailSent = false;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Ardoha <notifications@ardohadigitalmarketing.online>',
+        to: [process.env.CONTACT_TO_EMAIL],
+        reply_to: email,
+        subject: 'New Ardoha enquiry from ' + name,
+        text:
+          'A new customer enquiry has been received.\n\n' +
+          'Name: ' + name + '\n' +
+          'Email: ' + email + '\n' +
+          'Book: ' + title + '\n' +
+          'Genre: ' + genre + '\n' +
+          'Goal: ' + goal + '\n' +
+          'Budget: ' + budget
+      })
+    });
+
+    emailSent = response.ok;
+
+    if (!response.ok) {
+      console.error('Resend email error:', await response.text());
+    }
+  } catch (err) {
+    console.error('Resend connection error:', err.message);
+  }
+
+  return {
+    success: true,
+    saved: true,
+    emailSent
+  };
+});
 route('POST', '/api/admin/users/:id/updates', admin, async ({ params, body, user }) => {
   const u = await auth.getUserById(idOf(params.id));
   if (!u) throw new HttpError(404, 'User not found');
