@@ -151,6 +151,29 @@ route('POST', '/api/me/plan', { auth: true, limit: 60 }, async ({ user, body }) 
   }
   return dashboard(user);
 });
+
+route('DELETE', '/api/me/plan', { auth: true, limit: 60 }, async ({ user, body }) => {
+  const slug = body && body.slug;
+
+  if (typeof slug !== 'string' || !CATALOG[slug]) {
+    throw new HttpError(400, 'Invalid service');
+  }
+
+  const result = await db.query(
+    "DELETE FROM services WHERE user_id = $1 AND slug = $2 AND status = 'pending'",
+    [user.id, slug]
+  );
+
+  if (result.rowCount) {
+    await db.query(
+      'INSERT INTO updates(user_id, text, author, created_at) VALUES($1, $2, $3, $4)',
+      [user.id, `Removed ${CATALOG[slug].name} from your plan.`, 'Ardoha', now()]
+    );
+  }
+
+  return dashboard(user);
+});
+
 route('PATCH', '/api/me/plan/:slug', { auth: true }, async ({ user, params, body }) => {
   const { slug, tier } = validPlan({ slug: params.slug, tier: body.tier });
   const r = await db.query("UPDATE services SET tier = $1, updated_at = $2 WHERE user_id = $3 AND slug = $4 AND status = 'pending'", [tier, now(), user.id, slug]);
