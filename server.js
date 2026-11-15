@@ -314,8 +314,7 @@ const server = http.createServer(async (req, res) => {
         if (r.opts.admin && ctx.user.role !== 'admin') throw new HttpError(403, 'Admins only');
       }
       if (r.opts.raw) ctx.raw = await readBody(req, 200000);
-      else if (req.method === 'POST' || req.method === 'PATCH') {
-        const buf = await readBody(req, 100000);
+else if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'DELETE') {        const buf = await readBody(req, 100000);
         try { ctx.body = buf.length ? JSON.parse(buf.toString()) : {}; } catch (e) { throw bad('Invalid JSON'); }
         if (ctx.body === null || typeof ctx.body !== 'object') ctx.body = {};
       }
