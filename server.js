@@ -96,13 +96,108 @@ route('GET', '/health', {}, async () => { try { await db.query('SELECT 1'); } ca
 route('GET', '/api/config', {}, () => ({ googleClientId: GOOGLE_ID, currency: process.env.CURRENCY || 'USD' }));
 route('GET', '/api/catalog', {}, () => CATALOG);
 
+
 route('POST', '/api/bookings', { limit: 10 }, async ({ body }) => {
-  const b = { name: clean(body.name, 80), email: clean(body.email, 120).toLowerCase(), topic: clean(body.topic, 300), date: clean(body.date, 12), time: clean(body.time, 12), tz: clean(body.tz, 60) };
-  if (!b.name || !EMAIL.test(b.email) || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(b.date) || !b.time) throw bad('Please check the booking details');
+  const b = {
+    name: clean(body.name, 80),
+    email: clean(body.email, 120).toLowerCase(),
+    topic: clean(body.topic, 300),
+    date: clean(body.date, 12),
+    time: clean(body.time, 12),
+    tz: clean(body.tz, 60)
+  };
+
+  if (!b.name || !EMAIL.test(b.email) || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(b.date) || !b.time) {
+    throw bad('Please check the booking details');
+  }
+
   try {
-    await db.query('INSERT INTO bookings(name, email, topic, slot_date, slot_time, tz, created_at) VALUES($1, $2, $3, $4, $5, $6, $7)', [b.name, b.email, b.topic, b.date, b.time, b.tz, now()]);
-  } catch (e) { if (e.code === '23505') throw new HttpError(409, 'That time has just been taken'); throw e; }
-  return { ok: true };
+    await db.query(
+      'INSERT INTO bookings(name, email, topic, slot_date, slot_time, tz, created_at) VALUES($1, $2, $3, $4, $5, $6, $7)',
+      [b.name, b.email, b.topic, b.date, b.time, b.tz, now()]
+    );
+  } catch (e) {
+    if (e.code === '23505') throw new HttpError(409, 'That time has just been taken');
+    throw e;
+  }
+
+  const bookingDetails =
+    'Name: ' + b.name + '\n' +
+    'Email: ' + b.email + '\n' +
+    'Date: ' + b.date + '\n' +
+    'Time: ' + b.time + '\n' +
+    'Timezone: ' + (b.tz || 'Not specified') + '\n' +
+    'Discussion topic: ' + (b.topic || 'Not specified');
+
+  let emailSent = false;
+  let customerEmailSent = false;
+
+  // Notify Ardoha
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+        to: [process.env.CONTACT_TO_EMAIL],
+        reply_to: b.email,
+        subject: 'New free call booking from ' + b.name,
+        text: 'A new free call booking has been received.\n\n' + bookingDetails
+      })
+    });
+
+    emailSent = response.ok;
+
+    if (!response.ok) {
+      console.error('Booking notification error:', await response.text());
+    }
+  } catch (err) {
+    console.error('Booking notification connection error:', err.message);
+  }
+
+  // Send confirmation to the client
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+        to: [b.email],
+        subject: 'We have received your free call booking!',
+        text:
+          'Hello ' + b.name + ',\n\n' +
+          'Thank you for booking a free 30-minute call with Ardoha Digital Marketing.\n\n' +
+          'We have successfully received your booking request:\n\n' +
+          bookingDetails + '\n\n' +
+          'We will review your requested time and get back to you to confirm the call.\n\n' +
+          'Thank you for choosing Ardoha.\n\n' +
+          'Warm regards,\n' +
+          'Ardoha Digital Marketing Team\n' +
+          'chat@ardohadigitalmarketing.online'
+      })
+    });
+
+    customerEmailSent = response.ok;
+
+    if (!response.ok) {
+      console.error('Booking confirmation email error:', await response.text());
+    }
+  } catch (err) {
+    console.error('Booking confirmation connection error:', err.message);
+  }
+
+  return {
+    ok: true,
+    saved: true,
+    emailSent,
+    customerEmailSent
+  };
 });
 route('GET', '/api/bookings/taken', {}, async ({ q }) => ({ times: (await db.many('SELECT slot_time FROM bookings WHERE slot_date = $1', [clean(q.get('date'), 12)])).map((r) => r.slot_time) }));
 
