@@ -295,7 +295,7 @@ route('POST', '/api/contact', { limit: 5 }, async ({ body }) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Ardoha <notifications@ardohadigitalmarketing.online>',
+        from: 'Ardoha <chat@ardohadigitalmarketing.online>',
         to: [process.env.CONTACT_TO_EMAIL],
         reply_to: email,
         subject: 'New Ardoha enquiry from ' + name,
@@ -328,7 +328,7 @@ route('POST', '/api/contact', { limit: 5 }, async ({ body }) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Ardoha <notifications@ardohadigitalmarketing.online>',
+        from: 'Ardoha <chat@ardohadigitalmarketing.online>',
         to: [email],
         subject: "We've received your enquiry!",
         text:
