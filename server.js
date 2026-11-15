@@ -318,12 +318,47 @@ route('POST', '/api/contact', { limit: 5 }, async ({ body }) => {
   } catch (err) {
     console.error('Resend connection error:', err.message);
   }
+  let customerEmailSent = false;
 
-  return {
-    success: true,
-    saved: true,
-    emailSent
-  };
+  try {
+    const customerResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Ardoha <notifications@ardohadigitalmarketing.online>',
+        to: [email],
+        subject: "We've received your enquiry!",
+        text:
+          'Hello ' + name + ',\n\n' +
+          'Thank you for reaching out to Ardoha Digital Marketing.\n\n' +
+          'We have successfully received your enquiry' +
+          (title ? ' about "' + title + '"' : '') +
+          ' and our team will review your information.\n\n' +
+          'We will get back to you as soon as possible.\n\n' +
+          'Thank you for considering Ardoha.\n\n' +
+          'Warm regards,\n' +
+          'Ardoha Digital Marketing Team\n' +
+          'chat@ardohadigitalmarketing.online'
+      })
+    });
+
+    customerEmailSent = customerResponse.ok;
+
+    if (!customerResponse.ok) {
+      console.error('Customer confirmation email error:', await customerResponse.text());
+    }
+  } catch (err) {
+    console.error('Customer email connection error:', err.message);
+  }
+return {
+  success: true,
+  saved: true,
+  emailSent,
+  customerEmailSent
+};
 });
 route('POST', '/api/admin/users/:id/updates', admin, async ({ params, body, user }) => {
   const u = await auth.getUserById(idOf(params.id));
