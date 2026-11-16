@@ -108,6 +108,67 @@ async function signInWithPassword(email, password) {
   return { user: u, isNew: false };
 }
 
+async function createPasswordReset(email) {
+  const user = await getUserByEmail(email);
+
+  if (!user || !user.pw_hash) return null;
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = sha(token);
+  const expiresAt = Date.now() + 30 * 60 * 1000;
+
+  await db.query(
+    'DELETE FROM password_resets WHERE user_id = $1',
+    [user.id]
+  );
+
+  await db.query(
+    'INSERT INTO password_resets(user_id, token_hash, expires_at) VALUES($1, $2, $3)',
+    [user.id, tokenHash, expiresAt]
+  );
+
+  return { token, user };
+}
+
+async function resetPassword(token, newPassword) {
+  const tokenHash = sha(token);
+
+  const reset = await db.one(
+    'SELECT * FROM password_resets WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2',
+    [tokenHash, Date.now()]
+  );
+
+  if (!reset) {
+    throw new HttpError(400, 'This password reset link is invalid or has expired.');
+  }
+
+  const hash = await hashPassword(newPassword);
+
+  await db.tx(async (q) => {
+    await q(
+      'UPDATE users SET pw_hash = $1, provider = $2 WHERE id = $3',
+      [hash, 'password', reset.user_id]
+    );
+
+    await q(
+      'UPDATE password_resets SET used_at = $1 WHERE id = $2',
+      [now(), reset.id]
+    );
+
+    await q(
+      'DELETE FROM sessions WHERE user_id = $1',
+      [reset.user_id]
+    );
+
+    await q(
+      'DELETE FROM password_resets WHERE user_id = $1 AND id <> $2',
+      [reset.user_id, reset.id]
+    );
+  });
+
+  return true;
+}
+
 // ---------- Google ID token verification (no library) ----------
 const JWKS_URL = process.env.GOOGLE_JWKS_URL || 'https://www.googleapis.com/oauth2/v3/certs';
 let jwks = { keys: [], at: 0 };
@@ -147,5 +208,6 @@ async function verifyGoogleToken(idToken, clientId) {
 
 module.exports = {
   hashPassword, checkPassword, createSession, cookieHeader, userFromRequest, destroySession, purgeExpiredSessions, touchLogin,
-  getUserById, getUserByEmail, signInWithGoogle, signUpWithPassword, signInWithPassword, verifyGoogleToken,
+  getUserById, getUserByEmail, signInWithGoogle, signUpWithPassword, signInWithPassword,
+  createPasswordReset, resetPassword, verifyGoogleToken,
 };
