@@ -223,6 +223,83 @@ route('POST', '/api/auth/login', { limit: 10 }, async ({ res, body }) => {
   await startSession(res, user);
   return { user: publicUser(user), isNew };
 });
+
+route('POST', '/api/auth/forgot-password', { limit: 5 }, async ({ body }) => {
+  const email = clean(body.email, 120).toLowerCase();
+
+  if (!EMAIL.test(email)) {
+    throw bad('Please enter a valid email address');
+  }
+
+  const reset = await auth.createPasswordReset(email);
+
+  // Always return the same response to avoid revealing registered email addresses.
+  if (reset) {
+    const siteUrl = (process.env.SITE_URL || '')
+      .split(',')[0].trim().replace(/\/$/, '');
+
+    if (!siteUrl) {
+      console.error('SITE_URL is not configured');
+    } else {
+      const resetUrl = siteUrl + '/?reset_token=' + encodeURIComponent(reset.token);
+
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+            to: [email],
+            subject: 'Reset your Ardoha password',
+            text:
+              'Hello ' + reset.user.name + ',\n\n' +
+              'We received a request to reset your Ardoha account password.\n\n' +
+              'Use the link below to choose a new password:\n\n' +
+              resetUrl + '\n\n' +
+              'This link expires in 30 minutes and can only be used once.\n\n' +
+              'If you did not request this, you can ignore this email.\n\n' +
+              'Ardoha Digital Marketing Team'
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Password reset email error:', await response.text());
+        }
+      } catch (err) {
+        console.error('Password reset email connection error:', err.message);
+      }
+    }
+  }
+
+  return {
+    success: true,
+    message: 'If an account exists with that email, a password reset link will be sent.'
+  };
+});
+
+route('POST', '/api/auth/reset-password', { limit: 10 }, async ({ body }) => {
+  const token = clean(body.token, 128);
+  const password = String(body.password || '');
+
+  if (!/^[a-f0-9]{64}$/i.test(token)) {
+    throw bad('Invalid or expired password reset link');
+  }
+
+  if (password.length < 8 || password.length > 200) {
+    throw bad('Your new password must be between 8 and 200 characters');
+  }
+
+  await auth.resetPassword(token, password);
+
+  return {
+    success: true,
+    message: 'Your password has been changed successfully. You can now log in.'
+  };
+});
+
 route('POST', '/api/auth/logout', {}, async ({ req, res }) => { await auth.destroySession(req); res.setHeader('Set-Cookie', auth.cookieHeader('', true)); return { ok: true }; });
 route('GET', '/api/me', { auth: true }, ({ user }) => ({ user: publicUser(user) }));
 
