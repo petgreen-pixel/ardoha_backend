@@ -221,6 +221,40 @@ route('POST', '/api/auth/signup', { limit: 8 }, async ({ res, body }) => {
 route('POST', '/api/auth/login', { limit: 10 }, async ({ res, body }) => {
   const { user, isNew } = await auth.signInWithPassword(clean(body.email, 120).toLowerCase(), String(body.password || ''));
   await startSession(res, user);
+  if (isNew) {
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+        to: [email],
+        subject: 'Welcome to Ardoha! Let’s grow your book.',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#252525;line-height:1.7">
+            <h2 style="color:#222">Welcome to Ardoha, ${name}!</h2>
+            <p>We're delighted to have you join us.</p>
+            <p>You've taken an important step towards getting your book in front of more readers.</p>
+            <p>Through your Ardoha dashboard, you can explore our services, manage your selections, and follow the progress of your projects.</p>
+            <p>We're excited to be part of your author journey.</p>
+            <p style="margin-top:30px">Warm regards,<br><strong>The Ardoha Team</strong></p>
+            <hr style="border:0;border-top:1px solid #eee;margin-top:30px">
+            <p style="font-size:12px;color:#888">Ardoha Digital Marketing Agency</p>
+          </div>
+        `
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Welcome email error:', await response.text());
+    }
+  } catch (err) {
+    console.error('Welcome email connection error:', err.message);
+  }
+}
   return { user: publicUser(user), isNew };
 });
 
