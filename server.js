@@ -721,6 +721,22 @@ route('DELETE', '/api/admin/updates/:id', admin, async ({ params }) => {
   if (!r.rows.length) throw new HttpError(404, 'Update not found');
   return dashboard(await auth.getUserById(r.rows[0].user_id));
 });
+route('GET', '/api/admin/enquiries', admin, () =>
+  db.many(`
+    SELECT
+      id,
+      name,
+      email,
+      book_title,
+      genre,
+      goal,
+      budget,
+      created_at
+    FROM contact_enquiries
+    ORDER BY created_at DESC
+    LIMIT 200
+  `)
+);
 route('GET', '/api/admin/bookings', admin, () => db.many('SELECT id, name, email, topic, slot_date AS date, slot_time AS time, tz, created_at FROM bookings ORDER BY slot_date DESC, slot_time DESC LIMIT 200'));
 
 // ---------- server ----------
