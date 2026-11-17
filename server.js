@@ -202,11 +202,91 @@ route('POST', '/api/bookings', { limit: 10 }, async ({ body }) => {
 route('GET', '/api/bookings/taken', {}, async ({ q }) => ({ times: (await db.many('SELECT slot_time FROM bookings WHERE slot_date = $1', [clean(q.get('date'), 12)])).map((r) => r.slot_time) }));
 
 // ---------- authentication ----------
+
 route('POST', '/api/auth/google', { limit: 20 }, async ({ res, body }) => {
   let g;
-  try { g = await auth.verifyGoogleToken(body.credential, GOOGLE_ID); } catch (e) { throw new HttpError(401, 'Google sign-in could not be verified'); }
-  const { user, isNew } = await auth.signInWithGoogle(g, ADMINS.includes(g.email) ? 'admin' : 'user', clean(g.name, 80));
+  try {
+    g = await auth.verifyGoogleToken(body.credential, GOOGLE_ID);
+  } catch (e) {
+    throw new HttpError(401, 'Google sign-in could not be verified');
+  }
+
+  const { user, isNew } = await auth.signInWithGoogle(
+    g,
+    ADMINS.includes(g.email) ? 'admin' : 'user',
+    clean(g.name, 80)
+  );
+
   await startSession(res, user);
+
+  if (isNew) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+          to: [g.email],
+          subject: 'Welcome to Ardoha! Let’s grow your book.',
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#252525;line-height:1.7">
+              <h2>Welcome to Ardoha, ${clean(g.name, 80)}!</h2>
+              <p>We're delighted to have you join us.</p>
+              <p>You've taken an important step towards getting your book in front of more readers.</p>
+              <p>Through your Ardoha dashboard, you can explore our services, manage your selections, and follow the progress of your projects.</p>
+              <p>We're excited to be part of your author journey.</p>
+              <p style="margin-top:30px">Warm regards,<br><strong>The Ardoha Team</strong></p>
+              <hr style="border:0;border-top:1px solid #eee">
+              <p style="font-size:12px;color:#888">Ardoha Digital Marketing Agency</p>
+            </div>
+          `
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Google welcome email error:', await response.text());
+      }
+    } catch (err) {
+      console.error('Google welcome email connection error:', err.message);
+    }
+
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+          to: ['chat@ardohadigitalmarketing.online'],
+          subject: 'New Ardoha Google Registration',
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#252525;line-height:1.7">
+              <h2>New User Registration</h2>
+              <p>A new user has just joined Ardoha using Google.</p>
+              <p><strong>Name:</strong> ${clean(g.name, 80)}</p>
+              <p><strong>Email:</strong> ${g.email}</p>
+              <p><strong>Registration method:</strong> Google</p>
+              <p><strong>Date:</strong> ${new Date().toUTCString()}</p>
+              <hr style="border:0;border-top:1px solid #eee">
+              <p>Ardoha Digital Marketing Agency</p>
+            </div>
+          `
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Google admin notification error:', await response.text());
+      }
+    } catch (err) {
+      console.error('Google admin notification connection error:', err.message);
+    }
+  }
+
   return { user: publicUser(user), isNew };
 });
 route('POST', '/api/auth/signup', { limit: 8 }, async ({ res, body }) => {
