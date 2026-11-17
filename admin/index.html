@@ -162,7 +162,22 @@ function enquiries(){
   }).catch(function(e){
     $('#bookingList').textContent=e.message;
   });}
+$('#out').onclick=function(){
+  api('POST','/api/auth/logout').then(function(){
+    SEL=null;
+    login('You have signed out.');
+  });
+};
 
+api('GET','/api/me').then(function(j){
+  if(j.user.role==='admin'){
+    start(j.user);
+  }else{
+    login('This Google account is not an admin.');
+  }
+}).catch(function(){
+  login();
+});
 </script>
 </body>
 </html>
