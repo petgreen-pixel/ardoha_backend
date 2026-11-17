@@ -215,12 +215,7 @@ route('POST', '/api/auth/signup', { limit: 8 }, async ({ res, body }) => {
   if (!EMAIL.test(email)) throw bad('Please enter a valid email address');
   if (pw.length < 8 || pw.length > 200) throw bad('Your password should be at least 8 characters');
   const { user, isNew } = await auth.signUpWithPassword({ name, email, password: pw, title: clean(body.title, 120), goal: GOALS.includes(body.goal) ? body.goal : 'unsure' });
-  await startSession(res, user);
-  return { user: publicUser(user), isNew };
-});
-route('POST', '/api/auth/login', { limit: 10 }, async ({ res, body }) => {
-  const { user, isNew } = await auth.signInWithPassword(clean(body.email, 120).toLowerCase(), String(body.password || ''));
-  await startSession(res, user);
+  await startSession(res, user); 
   if (isNew) {
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -255,6 +250,11 @@ route('POST', '/api/auth/login', { limit: 10 }, async ({ res, body }) => {
     console.error('Welcome email connection error:', err.message);
   }
 }
+  return { user: publicUser(user), isNew };
+});
+route('POST', '/api/auth/login', { limit: 10 }, async ({ res, body }) => {
+  const { user, isNew } = await auth.signInWithPassword(clean(body.email, 120).toLowerCase(), String(body.password || ''));
+  await startSession(res, user);
   return { user: publicUser(user), isNew };
 });
 
