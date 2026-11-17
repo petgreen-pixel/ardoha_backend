@@ -50,11 +50,49 @@ function login(msg){
    google.accounts.id.renderButton($('#gb'),{theme:'filled_black',size:'large',text:'signin_with',shape:'rectangular'})}},200)})}
 function start(u){$('#who').textContent=u.name+' · '+u.email;$('#out').hidden=false;
  api('GET','/api/catalog').then(function(c){CAT=c;home()})}
+
 function home(){
- app.innerHTML='<div class="stats" id="st"></div><div class="grid"><div class="card" style="padding:0"><div style="padding:14px"><input id="q" placeholder="Search clients by name or email"></div><div id="ul"></div></div><div id="dt"><div class="card"><p class="hint">Select a client on the left to update their dashboard.</p></div></div></div>';
- api('GET','/api/admin/stats').then(function(s){$('#st').innerHTML=[['Clients',s.users],['Pending services',s.pending],['Active services',s.active],['Completed',s.completed],['Paid orders',s.paidOrders],['Revenue (USD)','$'+Number(s.revenueUsd).toLocaleString()],['Bookings',s.bookings]].map(function(x){return'<div class="card stat"><b>'+esc(x[1])+'</b><span>'+esc(x[0])+'</span></div>'}).join('')});
- $('#q').oninput=function(){clearTimeout(home.t);home.t=setTimeout(list,250)};list();
- if(SEL)open(SEL)}
+ app.innerHTML=
+ '<div class="row" style="grid-template-columns:1fr 1fr;margin-bottom:18px">'+
+   '<button class="btn" id="navOverview">Overview</button>'+
+   '<button class="btn o" id="navEnquiries">Enquiries</button>'+
+ '</div>'+
+ '<div id="overviewContent">'+
+   '<div class="stats" id="st"></div>'+
+   '<div class="grid">'+
+     '<div class="card" style="padding:0">'+
+       '<div style="padding:14px"><input id="q" placeholder="Search clients by name or email"></div>'+
+       '<div id="ul"></div>'+
+     '</div>'+
+     '<div id="dt"><div class="card"><p class="hint">Select a client on the left to update their dashboard.</p></div></div>'+
+   '</div>'+
+ '</div>';
+
+ $('#navOverview').onclick=home;
+ $('#navEnquiries').onclick=enquiries;
+
+ api('GET','/api/admin/stats').then(function(s){
+   $('#st').innerHTML=[
+     ['Clients',s.users],
+     ['Pending services',s.pending],
+     ['Active services',s.active],
+     ['Completed',s.completed],
+     ['Paid orders',s.paidOrders],
+     ['Revenue (USD)','$'+Number(s.revenueUsd).toLocaleString()],
+     ['Bookings',s.bookings]
+   ].map(function(x){
+     return '<div class="card stat"><b>'+esc(x[1])+'</b><span>'+esc(x[0])+'</span></div>';
+   }).join('');
+ });
+
+ $('#q').oninput=function(){
+   clearTimeout(home.t);
+   home.t=setTimeout(list,250);
+ };
+
+ list();
+ if(SEL)open(SEL);
+}
 function list(){api('GET','/api/admin/users?q='+encodeURIComponent($('#q').value)).then(function(r){
  $('#ul').innerHTML=r.length?r.map(function(u){return'<button class="u'+(u.id===SEL?' on':'')+'" data-id="'+u.id+'"><b>'+esc(u.name)+'</b>'+(u.role==='admin'?'<span class="pill">admin</span>':'')+'<small>'+esc(u.email)+'</small><small>'+u.active+' active'+(u.pending?' · <span style="color:#E0A84A">'+u.pending+' pending</span>':'')+'</small></button>'}).join(''):'<p class="hint" style="padding:14px">No clients found.</p>';
  document.querySelectorAll('.u').forEach(function(b){b.onclick=function(){SEL=+b.dataset.id;list();open(SEL)}})}).catch(function(e){say(e.message,1)})}
@@ -73,11 +111,16 @@ function show(d){CUR=d;var u=d.user,opts=Object.keys(CAT).map(function(k){return
  $('#na').onclick=function(){api('POST','/api/admin/users/'+u.id+'/services',{slug:$('#ns').value,tier:$('#nt').value,status:$('#nst').value}).then(function(j){say('Service added.');show(j);list()}).catch(function(e){say(e.message,1)})};
  $('#ub').onclick=function(){api('POST','/api/admin/users/'+u.id+'/updates',{text:$('#ut').value,service_slug:$('#us').value}).then(function(j){say('Update sent.');show(j)}).catch(function(e){say(e.message,1)})};
  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){if(confirm('Delete this update from the client\'s feed?'))api('DELETE','/api/admin/updates/'+b.dataset.del).then(function(j){say('Deleted.');show(j)}).catch(function(e){say(e.message,1)})}})}
+
 function enquiries(){
   app.innerHTML=
+    '<div class="row" style="grid-template-columns:1fr 1fr;margin-bottom:18px">'+
+      '<button class="btn o" id="navOverview">Overview</button>'+
+      '<button class="btn" id="navEnquiries">Enquiries</button>'+
+    '</div>'+
     '<div class="card">'+
-      '<h2>Enquiries</h2>'+
-      '<p class="hint">Contact form submissions from prospective clients.</p>'+
+      '<h2>Contact Enquiries</h2>'+
+      '<p class="hint">Submissions from prospective clients.</p>'+
       '<div id="enquiryList" class="hint">Loading enquiries...</div>'+
     '</div>'+
     '<div class="card">'+
@@ -85,6 +128,9 @@ function enquiries(){
       '<p class="hint">Scheduled calls with prospective clients.</p>'+
       '<div id="bookingList" class="hint">Loading bookings...</div>'+
     '</div>';
+
+  $('#navOverview').onclick=home;
+  $('#navEnquiries').onclick=enquiries;
 
   api('GET','/api/admin/enquiries').then(function(rows){
     $('#enquiryList').innerHTML=rows.length?rows.map(function(x){
@@ -116,8 +162,7 @@ function enquiries(){
   }).catch(function(e){
     $('#bookingList').textContent=e.message;
   });}
- $('#out').onclick=function(){api('POST','/api/auth/logout').then(function(){SEL=null;login('You have signed out.')})};
-api('GET','/api/me').then(function(j){if(j.user.role==='admin')start(j.user);else login('This Google account is not an admin.')}).catch(function(){login()});
+
 </script>
 </body>
 </html>
