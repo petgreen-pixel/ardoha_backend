@@ -258,8 +258,43 @@ route('POST', '/api/auth/signup', { limit: 8 }, async ({ res, body }) => {
     if (!response.ok) {
       console.error('Welcome email error:', await response.text());
     }
+  
   } catch (err) {
     console.error('Welcome email connection error:', err.message);
+  }
+
+  // Notify Ardoha about the new registration
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Ardoha <chat@ardohadigitalmarketing.online>',
+        to: ['chat@ardohadigitalmarketing.online'],
+        subject: 'New Ardoha Account Registration',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#252525;line-height:1.7">
+            <h2>New User Registration</h2>
+            <p>A new user has just joined Ardoha.</p>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Registration method:</strong> Email and password</p>
+            <p><strong>Date:</strong> ${new Date().toUTCString()}</p>
+            <hr style="border:0;border-top:1px solid #eee">
+            <p>Ardoha Digital Marketing Agency</p>
+          </div>
+        `
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Admin signup notification error:', await response.text());
+    }
+  } catch (err) {
+    console.error('Admin signup notification connection error:', err.message);
   }
 }
   return { user: publicUser(user), isNew };
