@@ -234,7 +234,20 @@ route('POST', '/api/auth/signup', { limit: 8 }, async ({ res, body }) => {
             <p>We're delighted to have you join us.</p>
             <p>You've taken an important step towards getting your book in front of more readers.</p>
             <p>Through your Ardoha dashboard, you can explore our services, manage your selections, and follow the progress of your projects.</p>
-<p>We're excited to be part of your author journey.</p>        <p style="margin-top:30px">Warm regards,<br><strong>The Ardoha Team</strong></p>
+<p>We're excited to be part of your author journey.</p>
+
+<div style="margin:30px 0;text-align:center">
+  <a href="https://www.ardohadigitalmarketing.online/"
+     style="display:inline-block;background:#171717;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:6px;font-weight:bold;margin:6px">
+    Visit Ardoha
+  </a>
+
+  <a href="https://www.ardohadigitalmarketing.online/#dashboard"
+     style="display:inline-block;background:#b89455;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:6px;font-weight:bold;margin:6px">
+    Access Your Dashboard
+  </a>
+</div>
+<p style="margin-top:30px">Warm regards,<br><strong>The Ardoha Team</strong></p>
             <hr style="border:0;border-top:1px solid #eee;margin-top:30px">
             <p style="font-size:12px;color:#888">Ardoha Digital Marketing Agency</p>
           </div>
