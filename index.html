@@ -73,7 +73,50 @@ function show(d){CUR=d;var u=d.user,opts=Object.keys(CAT).map(function(k){return
  $('#na').onclick=function(){api('POST','/api/admin/users/'+u.id+'/services',{slug:$('#ns').value,tier:$('#nt').value,status:$('#nst').value}).then(function(j){say('Service added.');show(j);list()}).catch(function(e){say(e.message,1)})};
  $('#ub').onclick=function(){api('POST','/api/admin/users/'+u.id+'/updates',{text:$('#ut').value,service_slug:$('#us').value}).then(function(j){say('Update sent.');show(j)}).catch(function(e){say(e.message,1)})};
  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){if(confirm('Delete this update from the client\'s feed?'))api('DELETE','/api/admin/updates/'+b.dataset.del).then(function(j){say('Deleted.');show(j)}).catch(function(e){say(e.message,1)})}})}
-$('#out').onclick=function(){api('POST','/api/auth/logout').then(function(){SEL=null;login('You have signed out.')})};
+function enquiries(){
+  app.innerHTML=
+    '<div class="card">'+
+      '<h2>Enquiries</h2>'+
+      '<p class="hint">Contact form submissions from prospective clients.</p>'+
+      '<div id="enquiryList" class="hint">Loading enquiries...</div>'+
+    '</div>'+
+    '<div class="card">'+
+      '<h2>Bookings</h2>'+
+      '<p class="hint">Scheduled calls with prospective clients.</p>'+
+      '<div id="bookingList" class="hint">Loading bookings...</div>'+
+    '</div>';
+
+  api('GET','/api/admin/enquiries').then(function(rows){
+    $('#enquiryList').innerHTML=rows.length?rows.map(function(x){
+      return '<div class="up"><div>'+
+        '<b>'+esc(x.name)+'</b><br>'+
+        '<small>'+esc(x.email)+'</small>'+
+        '<p>Book: '+esc(x.book_title||'Not provided')+
+        '<br>Genre: '+esc(x.genre||'Not provided')+
+        '<br>Goal: '+esc(x.goal||'Not provided')+
+        '<br>Budget: '+esc(x.budget||'Not provided')+
+        '<br>Received: '+esc(fmt(x.created_at))+'</p>'+
+        '</div></div>';
+    }).join(''):'<p class="hint">No enquiries yet.</p>';
+  }).catch(function(e){
+    $('#enquiryList').textContent=e.message;
+  });
+
+  api('GET','/api/admin/bookings').then(function(rows){
+    $('#bookingList').innerHTML=rows.length?rows.map(function(x){
+      return '<div class="up"><div>'+
+        '<b>'+esc(x.name)+'</b><br>'+
+        '<small>'+esc(x.email)+'</small>'+
+        '<p>Topic: '+esc(x.topic||'Not provided')+
+        '<br>Date: '+esc(x.date)+
+        '<br>Time: '+esc(x.time)+
+        '<br>Time zone: '+esc(x.tz)+'</p>'+
+        '</div></div>';
+    }).join(''):'<p class="hint">No bookings yet.</p>';
+  }).catch(function(e){
+    $('#bookingList').textContent=e.message;
+  });}
+ $('#out').onclick=function(){api('POST','/api/auth/logout').then(function(){SEL=null;login('You have signed out.')})};
 api('GET','/api/me').then(function(j){if(j.user.role==='admin')start(j.user);else login('This Google account is not an admin.')}).catch(function(){login()});
 </script>
 </body>
