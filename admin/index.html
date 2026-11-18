@@ -91,12 +91,12 @@ function home(){
  };
 
  list();
- if(SEL)open(SEL);
+if(SEL)openUser(SEL);
 }
 function list(){api('GET','/api/admin/users?q='+encodeURIComponent($('#q').value)).then(function(r){
  $('#ul').innerHTML=r.length?r.map(function(u){return'<button class="u'+(u.id===SEL?' on':'')+'" data-id="'+u.id+'"><b>'+esc(u.name)+'</b>'+(u.role==='admin'?'<span class="pill">admin</span>':'')+'<small>'+esc(u.email)+'</small><small>'+u.active+' active'+(u.pending?' · <span style="color:#E0A84A">'+u.pending+' pending</span>':'')+'</small></button>'}).join(''):'<p class="hint" style="padding:14px">No clients found.</p>';
- document.querySelectorAll('.u').forEach(function(b){b.onclick=function(){SEL=+b.dataset.id;list();open(SEL)}})}).catch(function(e){say(e.message,1)})}
-function open(id){api('GET','/api/admin/users/'+id).then(show).catch(function(e){say(e.message,1)})}
+ document.querySelectorAll('.u').forEach(function(b){b.onclick=function(){SEL=+b.dataset.id;list();openUser(SEL)}})}).catch(function(e){say(e.message,1)})}
+function openUser(id){api('GET','/api/admin/users/'+id).then(show).catch(function(e){say(e.message,1)})}
 function show(d){CUR=d;var u=d.user,opts=Object.keys(CAT).map(function(k){return'<option value="'+esc(k)+'">'+esc(CAT[k].name)+'</option>'}).join('');
  $('#dt').innerHTML='<div class="card"><h2>'+esc(u.name)+'</h2><div class="hint">'+esc(u.email)+' · Book: '+esc(u.title||'not added')+' · Goal: '+esc(u.goal)+' · Joined '+esc(fmt(u.joined))+' · Signed up with '+esc(u.provider)+'</div>'+
  '<h3>Services</h3>'+(d.services.length?d.services.map(function(s){return'<div class="svc" data-id="'+s.id+'"><h4>'+esc(s.name)+' <span class="pill'+(s.status==='pending'?' w':'')+'">'+esc(s.tier==='starter'?'Basic':s.tier==='growth'?'Standard':'Advanced')+' · $'+s.price+'</span></h4>'+
